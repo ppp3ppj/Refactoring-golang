@@ -1,0 +1,18 @@
+version: '3.5'
+services:
+  postgresserver:
+    image: postgres:alpine
+    container_name: "${APP_NAME}_db"
+    hostname: postgres-server
+    restart: always
+    ports:
+      - "${DB_PORT}:5432"
+    environment:
+      TZ: "Asia/Bangkok"
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGPORT: 5432
+      POSTGRES_HOST_AUTH_METHOD: trust
+    command:
+      -c ssl=off
