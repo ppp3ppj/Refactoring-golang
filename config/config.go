@@ -1,7 +1,7 @@
 package config
 
 import (
-	"strings"
+	"log"
 	"sync"
 	"time"
 
@@ -23,10 +23,9 @@ type (
 	}
 
 	AppInfo struct {
-		Name      string `mapstructure:"name" validate:"required"`
-		Version   string `mapstructure:"version" validate:"required"`
-		Env       string `mapstructure:"environtment" validate:"required"`
-		SecretKey string `mapstructure:"secretkey" validate:"required"`
+		Name    string `mapstructure:"name" validate:"required"`
+		Version string `mapstructure:"version" validate:"required"`
+		Env     string `mapstructure:"env" validate:"required"`
 	}
 
 	Server struct {
@@ -45,28 +44,66 @@ type (
 
 var configInstance *Config
 
+// Can refactor later it easy when change .env to .yaml
 func ConfigGetting() *Config {
 	once.Do(func() {
-		viper.SetConfigType("yaml")
-		viper.SetConfigName("config")
+		viper.SetConfigFile(".env")
 		viper.AddConfigPath(".")
 		viper.AutomaticEnv()
-		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+		viper.SetEnvPrefix("APP")
+		viper.BindEnv("HOST", "APP_HOST")
+		viper.BindEnv("PORT", "APP_PORT")
+		viper.BindEnv("NAME", "APP_NAME")
+		viper.BindEnv("VERSION", "APP_VERSION")
+		viper.BindEnv("ENV", "APP_ENV")
+
+		viper.SetEnvPrefix("DB")
+		viper.BindEnv("HOST", "DB_HOST")
+		viper.BindEnv("PORT", "DB_PORT")
+		viper.BindEnv("USER", "DB_USER")
+		viper.BindEnv("PASSWORD", "DB_PASSWORD")
+		viper.BindEnv("DBNAME", "DB_NAME")
+		viper.BindEnv("SSLMODE", "DB_SSLMODE")
+		viper.BindEnv("SCHEMA", "DB_SCHEMA")
+
+		viper.SetEnvPrefix("SERVER")
+		viper.BindEnv("PORT", "SERVER_PORT")
+		viper.BindEnv("ALLOWORIGINS", "SERVER_ALLOW_ORIGINS")
+		viper.BindEnv("TIMEOUT", "SERVER_TIMEOUT")
+		viper.BindEnv("BODYLIMIT", "SERVER_BODY_LIMIT")
 
 		if err := viper.ReadInConfig(); err != nil {
-			panic(err)
+			log.Fatalf("Error reading config file: %v", err)
 		}
 
-		if err := viper.Unmarshal(&configInstance); err != nil {
-			panic(err)
+		configInstance = &Config{
+			Database: &Database{
+				Host:     viper.GetString("DB_HOST"),
+				Port:     viper.GetInt("DB_PORT"),
+				User:     viper.GetString("DB_USER"),
+				Password: viper.GetString("DB_PASSWORD"),
+				DBName:   viper.GetString("DB_NAME"),
+				SSLMode:  viper.GetString("DB_SSLMODE"),
+				Schema:   viper.GetString("DB_SCHEMA"),
+			},
+			Server: &Server{
+				Port:         viper.GetInt("SERVER_PORT"),
+				AllowOrigins: viper.GetStringSlice("SERVER_ALLOW_ORIGINS"),
+				Timeout:      viper.GetDuration("SERVER_TIMEOUT"),
+				BodyLimit:    viper.GetString("SERVER_BODY_LIMIT"),
+			},
+			AppInfo: &AppInfo{
+				Name:    viper.GetString("APP_NAME"),
+				Version: viper.GetString("APP_VERSION"),
+				Env:     viper.GetString("APP_ENV"),
+			},
 		}
 
 		validate := validator.New()
-
 		if err := validate.Struct(configInstance); err != nil {
-			panic(err)
+			log.Fatalf("Validation failed: %v", err)
 		}
 	})
-
 	return configInstance
 }
