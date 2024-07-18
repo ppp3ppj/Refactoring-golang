@@ -1,0 +1,21 @@
+database:
+  host: localhost
+  port: 4444
+  user: wywy
+  password: 123456
+  dbname: wywy_db
+  sslmode: disable
+  schema: public
+
+appinfo:
+  name: wywy
+  version: 0.0.1
+  environtment: development
+  secretkey: "secretkey"
+
+server:
+  port: 1323
+  allowOrigins:
+    - "*"
+  timeout: 30
+  bodyLimit: "1048576"
