@@ -53,6 +53,45 @@ func (s * echoServer) Start() {
     s.app.Use(timeOutMiddleware)
     s.app.Use(corsMiddleware)
 
+    // set format color
+    s.app.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+        Format: "[${time_rfc3339}] ${status} ${method} ${path} (${remote_ip}) ${latency_human}\n",
+        Output: s.app.Logger.Output(),
+    }))
+
+    s.app.HideBanner = true
+    s.app.HidePort = true
+    asciiArt := fmt.Sprintf(`
+        WWWWWWWWWWWWWMWWWWWWWWWWWWWWWWWWWWWWWWWW
+        WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
+        WWWWW0k0NWWWWNNWWWWNKOkXWWWWWWWWWWWWWWWW
+        WWWWWO:coxOOkkkkkkxlc;c0WWWWWWWWWWWWWWWW
+        WWWWW0lcdxkxxOOkkkxddlcxKWWWWWWWWWWWWWWW
+        WWWW0xlcx0x:oOdcdOOOOOkxxONWWWWWWWWWWWWW
+        WWW0odd:lkd:okd:okkkkkxd:,oNWWWWWWWWWWWW
+        WWWx,.':ldddxdl:,''cdkOc  .OWWWWWWWWWWWW
+        WWWO;..:::OXOdl;.  ..''.  .l0NWWWWWWWWWW
+        WWWXd'  .c0K0kdl:'.      .:ddkXWWWWWWWWW
+        WWWWKc,,l00O0X0kdl:;,,..'lkkdox0NWWWWWWW
+        WWWWNkodoxOO00KKOxdl:;'. ,xXOlcokKNWWWWW
+        WWWWWKxodO0kooxxd:'.... ..;ol;;odoOWWWWW
+        WWWWWW0ooxOOddkdl:,,,,,;;::;:dO0koo0WWWW
+        WWWWWWWOddooddx0KOl:cccccloxk0KXk;.'OWWW
+        WWWWWWWWX00OOdclc:,lO00KXNWWWNKx;..;0WWW
+        WWWWWWWWWWWWWXd;..,ONWWWWWWWWWWWX0KNWWWW
+        WWWWWWWWWWWWWWWX00XWWWWWMWWWWWWWWWWWWWWW
+        WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
+        WWWWWWWWWWWWWWWWWWWWWWWWWWWMWWWWWWWWWWWW
+
+        Haerin,
+        Name: %s Port: %d
+    `,
+     s.conf.AppInfo.Name,
+     s.conf.Server.Port,
+    )
+
+    fmt.Print(asciiArt)
+
     // Graceful Shutdown
     quitCh := make(chan os.Signal, 1)
     signal.Notify(quitCh, syscall.SIGINT, syscall.SIGTERM)
