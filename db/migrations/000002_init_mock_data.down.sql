@@ -1,2 +1,2 @@
 DELETE FROM "Person"
-WHERE key IN ('newjean', 'alice', 'bob');
+WHERE key IN ('minji', 'hanni', 'danielle', 'haerin', 'hyein');
