@@ -185,6 +185,61 @@ func (s * echoServer) Start() {
 
     })
 
+    s.app.PUT("/person/:key", func(c echo.Context) error {
+        key := c.Param("key")
+        p := new(Person)
+        if err := c.Bind(p); err != nil {
+            return c.String(http.StatusBadRequest, "bad request")
+        }
+
+        stmt, err := s.db.Connect().Prepare(`
+            UPDATE "Person"
+            SET name = $1, description = $2, image = $3, traits = $4, tags = $5
+            WHERE key = $6
+        `)
+        if err != nil {
+            return c.JSON(http.StatusInternalServerError, err)
+        }
+
+        traits, err := json.Marshal(p.Traits)
+        if err != nil {
+            return c.JSON(http.StatusInternalServerError, err)
+        }
+
+        tags := pq.StringArray(p.Tags)
+        _, err = stmt.Exec(p.Name, p.Description, p.Image, traits, tags, key)
+        if err != nil {
+            return c.JSON(http.StatusInternalServerError, err)
+        }
+
+        return c.JSON(http.StatusOK, "Updated successfully")
+    })
+
+    s.app.DELETE("/person/:key", func(c echo.Context) error {
+        key := c.Param("key")
+
+        stmt, err := s.db.Connect().Prepare(`DELETE FROM "Person" WHERE key = $1`)
+        if err != nil {
+            return c.JSON(http.StatusInternalServerError, err)
+        }
+
+        result, err := stmt.Exec(key)
+        if err != nil {
+            return c.JSON(http.StatusInternalServerError, err)
+        }
+
+        rowsAffected, err := result.RowsAffected()
+        if err != nil {
+            return c.JSON(http.StatusInternalServerError, err)
+        }
+
+        if rowsAffected == 0 {
+            return c.JSON(http.StatusNotFound, "Person not found")
+        }
+
+        return c.JSON(http.StatusOK, "Deleted successfully")
+    })
+
     // Graceful Shutdown
     quitCh := make(chan os.Signal, 1)
     signal.Notify(quitCh, syscall.SIGINT, syscall.SIGTERM)
