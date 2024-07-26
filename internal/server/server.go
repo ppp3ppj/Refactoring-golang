@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	"github.com/lib/pq"
 	"github.com/ppp3ppj/go-refactoring-workshop/config"
 	"github.com/ppp3ppj/go-refactoring-workshop/db"
 	server_middlewares "github.com/ppp3ppj/go-refactoring-workshop/internal/middlewares"
@@ -42,6 +44,25 @@ func NewEchoServer(conf *config.Config, db db.IDatabase) *echoServer {
 
     return server
 }
+
+type Person struct {
+    Key         string          `json:"key"`
+    Name        string          `json:"name"`
+    Description string          `json:"description"`
+    Image       string          `json:"image"`
+    Traits      []Trait `json:"traits"` // Use RawMessage to hold JSON data
+    Tags        []string `json:"tags"`   // Use RawMessage to hold JSON data
+}
+
+type Trait struct {
+    Personality string `json:"personality"`
+    Like string `json:"like"`
+    ZodiacSign string `json:"Zodiac Sign"`
+    Emoji string `json:"emoji"`
+    Color string `json:"color"`
+}
+
+
 
 func (s * echoServer) Start() {
     timeOutMiddleware := server_middlewares.GetTimeOutMiddleware(s.conf.Server.Timeout)
@@ -91,6 +112,32 @@ func (s * echoServer) Start() {
     )
 
     fmt.Print(asciiArt)
+
+    s.app.GET("/persons", func(c echo.Context) error {
+        row, err := s.db.Connect().Query(`SELECT key, name, description, image, traits, tags FROM "Person"`)
+        if err != nil {
+            return c.JSON(http.StatusInternalServerError, err)
+        }
+
+        persons := []Person{}
+        for row.Next() {
+            var person Person
+            var traits []byte
+            var tags pq.StringArray
+            if err := row.Scan(&person.Key, &person.Name, &person.Description, &person.Image, &traits, &tags); err != nil {
+                return c.JSON(http.StatusInternalServerError, err)
+            }
+
+            if err := json.Unmarshal(traits, &person.Traits); err != nil {
+                return c.JSON(http.StatusInternalServerError, err)
+            }
+
+            person.Tags = tags
+            persons = append(persons, person)
+        }
+
+        return c.JSON(http.StatusOK, persons)
+    })
 
     // Graceful Shutdown
     quitCh := make(chan os.Signal, 1)
