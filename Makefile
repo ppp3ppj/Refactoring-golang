@@ -74,4 +74,5 @@ delete-person:
 
 # Check if the service is running
 check:
-	@curl -s -o /dev/null -w "%{http_code}" "${APP_HOST}:${APP_PORT}"/persons | grep -q "200" && echo "Service is running" || echo "Service is not running"
+	@curl -s -o /dev/null -w "%{http_code}" "${APP_HOST}:${APP_PORT}"/v1/health | grep -q "200" && echo "Service is running" || echo "Service is not running"
+

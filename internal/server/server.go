@@ -112,6 +112,7 @@ func (s * echoServer) Start() {
     )
 
     fmt.Print(asciiArt)
+    s.app.GET("/v1/health", s.healthCheck)
 
     s.app.GET("/person/:key", func(c echo.Context) error {
         key := c.Param("key")
