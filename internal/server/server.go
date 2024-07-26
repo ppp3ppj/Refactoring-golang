@@ -159,6 +159,32 @@ func (s * echoServer) Start() {
         return c.JSON(http.StatusOK, persons)
     })
 
+    s.app.POST("/persons", func(c echo.Context) error {
+        p := new(Person)
+        if err := c.Bind(p); err != nil {
+            return c.String(http.StatusBadRequest, "bad request")
+        }
+
+        stmt, err := s.db.Connect().Prepare(`INSERT INTO "Person" (key, name, description, image, traits, tags) VALUES ($1, $2, $3, $4, $5, $6)`)
+        if err != nil {
+            return c.JSON(http.StatusInternalServerError, err)
+        }
+
+        traits, err := json.Marshal(p.Traits)
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, err)
+        }
+
+        tags := pq.StringArray(p.Tags)
+        _, err = stmt.Exec(p.Key, p.Name, p.Description, p.Image, traits, tags)
+        if err != nil {
+            return c.JSON(http.StatusInternalServerError, err)
+        }
+
+        return c.JSON(http.StatusOK, "OK")
+
+    })
+
     // Graceful Shutdown
     quitCh := make(chan os.Signal, 1)
     signal.Notify(quitCh, syscall.SIGINT, syscall.SIGTERM)
