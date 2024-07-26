@@ -113,6 +113,26 @@ func (s * echoServer) Start() {
 
     fmt.Print(asciiArt)
 
+    s.app.GET("/person/:key", func(c echo.Context) error {
+        key := c.Param("key")
+        row := s.db.Connect().QueryRow(`SELECT key, name, description, image, traits, tags FROM "Person" WHERE key = $1`, key)
+
+        var person Person
+        var traits []byte
+        var tags pq.StringArray
+        if err := row.Scan(&person.Key, &person.Name, &person.Description, &person.Image, &traits, &tags); err != nil {
+            return c.JSON(http.StatusInternalServerError, err)
+        }
+
+        if err := json.Unmarshal(traits, &person.Traits); err != nil {
+            return c.JSON(http.StatusInternalServerError, err)
+        }
+
+        person.Tags = tags
+        return c.JSON(http.StatusOK, person)
+
+    })
+
     s.app.GET("/persons", func(c echo.Context) error {
         row, err := s.db.Connect().Query(`SELECT key, name, description, image, traits, tags FROM "Person"`)
         if err != nil {
